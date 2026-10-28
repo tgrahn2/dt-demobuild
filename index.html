@@ -1,0 +1,2311 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Discount Tire · Behind the Scenes</title>
+  <style>
+    :root {
+      --dt-red: #cc0000;
+      --dt-red-dark: #a30000;
+      --ink: #17171b;
+      --muted: #5b5b61;
+      --line: #e4e4e7;
+      --bg: #ffffff;
+      --soft: #f7f7f8;
+      --redtint: #fdeeee;
+      --redline: #f0c4c4;
+      --scapi: #0a4ea2;
+      --scapitint: #eef5fc;
+      --scapiline: #bcd3ef;
+      --ok: #166534;
+      --oktint: #e9f3ec;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: #0e0e0f;
+      color: var(--ink);
+      font-family: var(--sans)
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden
+    }
+
+    .toc {
+      width: 248px;
+      flex-shrink: 0;
+      background: #15151a;
+      color: #cfcfd6;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #26262e
+    }
+
+    .toc .brand {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid #26262e
+    }
+
+    .toc .brand .b1 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff
+    }
+
+    .toc .brand .b1 .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      background: var(--dt-red)
+    }
+
+    .toc .brand .b2 {
+      font-size: 11px;
+      color: #8a8a93;
+      margin-top: 4px;
+      letter-spacing: .04em
+    }
+
+    .toc .items {
+      padding: 8px 10px;
+      overflow-y: auto;
+      flex: 1
+    }
+
+    .toc .sec {
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #6f6f79;
+      font-weight: 800;
+      padding: 12px 10px 5px
+    }
+
+    .toc .item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #b7b7c0;
+      transition: background .12s, color .12s;
+      margin-bottom: 2px
+    }
+
+    .toc .item:hover {
+      background: #1f1f27;
+      color: #ececf1
+    }
+
+    .toc .item.active {
+      background: var(--dt-red);
+      color: #fff
+    }
+
+    .toc .item.active .idx {
+      color: #fff;
+      opacity: .9
+    }
+
+    .toc .item .idx {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #6f6f79;
+      padding-top: 1px;
+      min-width: 14px
+    }
+
+    .toc .item .ti {
+      font-size: 12.6px;
+      line-height: 1.35;
+      font-weight: 600
+    }
+
+    .toc .foot {
+      padding: 11px 18px;
+      border-top: 1px solid #26262e;
+      font-size: 10.5px;
+      color: #6f6f79;
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .toc .foot .keys {
+      font-family: var(--mono)
+    }
+
+    .stage {
+      flex: 1;
+      position: relative;
+      background: var(--bg);
+      overflow: hidden
+    }
+
+    .slide {
+      display: none;
+      position: absolute;
+      inset: 0;
+      padding: 4vh 4vw;
+      background: var(--bg);
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .slide.active {
+      display: flex
+    }
+
+    .kicker {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-size: 12.5px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700
+    }
+
+    .kicker .tag {
+      background: var(--dt-red);
+      color: #fff;
+      padding: 3px 9px;
+      border-radius: 3px;
+      letter-spacing: .08em
+    }
+
+    h1 {
+      font-size: 36px;
+      line-height: 1.1;
+      margin: 12px 0 4px;
+      letter-spacing: -.02em
+    }
+
+    h1 .accent {
+      color: var(--dt-red)
+    }
+
+    .sub {
+      font-size: 16px;
+      color: var(--muted);
+      margin: 0 0 16px;
+      max-width: 72ch;
+      line-height: 1.5
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 2.2vh;
+      left: 4vw;
+      right: 4vw;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: #9a9aa0
+    }
+
+    .num {
+      font-family: var(--mono)
+    }
+
+    .note {
+      font-size: 12.5px;
+      color: var(--muted);
+      text-align: center;
+      margin: 10px auto 0;
+      max-width: 94ch;
+      line-height: 1.5
+    }
+
+    .note code,
+    .note .num {
+      font-family: var(--mono);
+      background: var(--soft);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--ink);
+      font-size: .92em
+    }
+
+    /* cover */
+    .cover {
+      justify-content: center;
+      align-items: flex-start;
+      background: #111318;
+      color: #fff;
+      padding-left: 8vw
+    }
+
+    .cover .ey {
+      font-size: 13px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #ff5a5a;
+      font-weight: 800
+    }
+
+    .cover h1 {
+      font-size: 58px;
+      color: #fff;
+      margin: 14px 0 10px;
+      max-width: 20ch
+    }
+
+    .cover p {
+      font-size: 18px;
+      color: #b7b7c0;
+      max-width: 58ch;
+      line-height: 1.5;
+      margin: 0
+    }
+
+    .cover .toclist {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px
+    }
+
+    .cover .toclist .ln {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      font-size: 15px;
+      color: #d8d8df
+    }
+
+    .cover .toclist .ln .n {
+      font-family: var(--mono);
+      color: #ff5a5a;
+      font-weight: 700
+    }
+
+    /* swimlane */
+    .lanes {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      flex: 1;
+      min-height: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden
+    }
+
+    .lane {
+      display: contents
+    }
+
+    .lane .name {
+      background: var(--soft);
+      border-top: 1px solid var(--line);
+      border-right: 2px solid var(--line);
+      padding: 12px 14px;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      line-height: 1.3
+    }
+
+    .lane:first-child .name {
+      border-top: 0
+    }
+
+    .lane .track {
+      border-top: 1px solid var(--line);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap
+    }
+
+    .lane:first-child .track {
+      border-top: 0
+    }
+
+    .lane .name.sf {
+      color: var(--dt-red)
+    }
+
+    .lane .name.store {
+      color: var(--scapi)
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 10px;
+      background: #fff;
+      font-size: 12px;
+      line-height: 1.35
+    }
+
+    .step .s {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #fff;
+      background: var(--ink);
+      border-radius: 999px;
+      padding: 1px 6px;
+      margin-right: 6px;
+      font-weight: 700
+    }
+
+    .step.red {
+      border-color: var(--redline);
+      background: var(--redtint)
+    }
+
+    .step.blue {
+      border-color: var(--scapiline);
+      background: var(--scapitint)
+    }
+
+    .step code {
+      font-family: var(--mono);
+      font-size: 11px
+    }
+
+    .step b {
+      font-weight: 700
+    }
+
+    .farrow {
+      color: #c4c4c8;
+      font-size: 15px
+    }
+
+    /* ER schema */
+    .erwrap {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+      justify-content: center;
+      padding-top: 6px
+    }
+
+    .errow {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      justify-content: center
+    }
+
+    .errow .grouplbl {
+      align-self: center;
+      width: 92px;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-weight: 700;
+      text-align: right;
+      padding-right: 4px;
+      line-height: 1.3
+    }
+
+    .tbl {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      width: 214px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+      background: #fff;
+      position: relative
+    }
+
+    .tbl .cap {
+      padding: 9px 13px;
+      color: #fff;
+      background: #2a2a30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px
+    }
+
+    .tbl.custom .cap {
+      background: var(--dt-red)
+    }
+
+    .tbl.core .cap {
+      background: var(--ok)
+    }
+
+    .cap .nm {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 14.5px
+    }
+
+    .cap .stereo {
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      opacity: .9;
+      background: rgba(255, 255, 255, .16);
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap
+    }
+
+    .tbl .r {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 13px;
+      border-top: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 12.5px
+    }
+
+    .tbl .r:first-of-type {
+      border-top: 0
+    }
+
+    .tbl .r .ty {
+      margin-left: auto;
+      color: #a0a0a6;
+      font-size: 11px
+    }
+
+    .tbl .r.pk {
+      background: var(--soft);
+      font-weight: 700
+    }
+
+    .tbl .r.pk .key {
+      color: var(--dt-red)
+    }
+
+    .tbl .r.new {
+      background: var(--redtint)
+    }
+
+    .tbl .r.new .nmc {
+      color: var(--dt-red-dark);
+      font-weight: 700
+    }
+
+    .tbl.core .r.new {
+      background: var(--oktint)
+    }
+
+    .tbl.core .r.new .nmc {
+      color: var(--ok)
+    }
+
+    .tbl .r .tag {
+      margin-left: auto;
+      background: var(--dt-red);
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      padding: 2px 6px;
+      border-radius: 999px
+    }
+
+    .tbl.core .r .tag {
+      background: var(--ok)
+    }
+
+    .tbl .r.new .ty {
+      display: none
+    }
+
+    .rel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 10.5px;
+      align-self: center;
+      gap: 3px;
+      width: 58px;
+      flex-shrink: 0;
+      text-align: center;
+      line-height: 1.25
+    }
+
+    .rel .ln {
+      font-family: var(--mono);
+      font-size: 24px;
+      color: var(--dt-red);
+      line-height: 1
+    }
+
+    .rel .lbl2 {
+      line-height: 1.3
+    }
+
+    .relnote2 {
+      align-self: center;
+      width: 150px;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.45;
+      padding-left: 6px
+    }
+
+    .legend {
+      display: flex;
+      gap: 18px;
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 0 0 8px
+    }
+
+    .legend .k {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .sw {
+      width: 13px;
+      height: 13px;
+      border-radius: 3px;
+      display: inline-block;
+      border: 1px solid var(--line)
+    }
+
+    .sw.new {
+      background: var(--redtint);
+      border-color: var(--redline)
+    }
+
+    .sw.core {
+      background: var(--ok);
+      border-color: var(--ok)
+    }
+
+    .sw.custobj {
+      background: var(--dt-red);
+      border-color: var(--dt-red)
+    }
+
+    .sw.std {
+      background: #fff
+    }
+
+    /* cards */
+    .cards {
+      display: grid;
+      gap: 16px;
+      flex: 1;
+      min-height: 0
+    }
+
+    .cards.c3 {
+      grid-template-columns: 1fr 1fr 1fr
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 15px 17px;
+      background: #fff;
+      display: flex;
+      flex-direction: column
+    }
+
+    .card .ic {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--redtint);
+      color: var(--dt-red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-family: var(--mono);
+      font-size: 12px;
+      margin-bottom: 8px
+    }
+
+    .card .ic.core {
+      background: var(--oktint);
+      color: var(--ok)
+    }
+
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 15.5px
+    }
+
+    .card h3 .mono {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+      display: block;
+      font-weight: 500;
+      margin-top: 2px
+    }
+
+    .card ul {
+      margin: 0;
+      padding-left: 16px
+    }
+
+    .card li {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 5px
+    }
+
+    .card li b {
+      color: var(--ink);
+      font-weight: 600
+    }
+
+    .card code {
+      font-family: var(--mono);
+      background: var(--soft);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--ink);
+      font-size: .9em
+    }
+
+    /* two-path */
+    .paths {
+      display: flex;
+      gap: 22px;
+      flex: 1;
+      min-height: 0;
+      align-items: stretch
+    }
+
+    .path {
+      flex: 1;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column
+    }
+
+    .path.a {
+      border-color: var(--scapiline);
+      background: var(--scapitint)
+    }
+
+    .path.b {
+      border-color: var(--redline);
+      background: var(--redtint)
+    }
+
+    .path h3 {
+      margin: 0 0 3px;
+      font-size: 17px
+    }
+
+    .path .who {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 0 0 12px;
+      font-weight: 600
+    }
+
+    .chain {
+      display: flex;
+      flex-direction: column;
+      gap: 7px
+    }
+
+    .node {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px
+    }
+
+    .node .mono {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      display: block;
+      margin-top: 2px
+    }
+
+    .down {
+      color: #b4b4b8;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1
+    }
+
+    /* summary (overview) */
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      flex: 1;
+      min-height: 0
+    }
+
+    .scol {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .scol>.hd {
+      padding: 9px 13px;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .scol.integ>.hd,
+    .scol.ext>.hd,
+    .scol.obj>.hd {
+      background: var(--dt-red)
+    }
+
+    .scol .hd .ct {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      background: rgba(255, 255, 255, .18);
+      padding: 1px 7px;
+      border-radius: 999px;
+      letter-spacing: 0
+    }
+
+    .scol .bd {
+      padding: 7px 8px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px
+    }
+
+    .row2 {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 7px 9px;
+      background: var(--soft)
+    }
+
+    .row2 .t {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.25;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .row2 .m {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.35;
+      word-break: break-word
+    }
+
+    .row2 .d {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 3px;
+      line-height: 1.4
+    }
+
+    .row2 .pill {
+      display: inline-block;
+      font-family: var(--sans);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      padding: 1px 6px;
+      border-radius: 999px;
+      margin-left: 0;
+      vertical-align: middle;
+      flex-shrink: 0;
+      white-space: nowrap
+    }
+
+    .row2 .t .pill:first-of-type {
+      margin-left: auto
+    }
+
+    .pill.core {
+      background: var(--oktint);
+      color: var(--ok)
+    }
+
+    .pill.scapi {
+      background: var(--scapitint);
+      color: var(--scapi)
+    }
+
+    .pill.ext {
+      background: var(--redtint);
+      color: var(--dt-red-dark)
+    }
+
+    /* SFNext BFF (storefront Node server resource route) — distinct from the SCAPI/core data planes */
+    .pill.bff {
+      background: #efe9fb;
+      color: #6b3fa0;
+      border: 1px solid #d9c9f0
+    }
+
+    /* 3rd-party vendor highlight — amber, distinct from core/scapi/ext, to draw the eye */
+    .pill.vendor {
+      background: #fff1dd;
+      color: #9a5a00;
+      border: 1px solid #f0cf9a
+    }
+
+    .row2.vendor {
+      background: #fffaf2;
+      border-color: #f0d49a;
+      border-left: 3px solid #e08a00
+    }
+
+    .row2.vendor .m {
+      color: #9a5a00;
+      font-weight: 700
+    }
+
+    .node.vendor {
+      border-color: #f0d49a;
+      background: #fffaf2;
+      box-shadow: inset 3px 0 0 #e08a00
+    }
+
+    .node.vendor .mono {
+      color: #9a5a00
+    }
+
+    .card .ic.vendor {
+      background: #fff1dd;
+      color: #9a5a00
+    }
+
+    .scol.ext .row2 .t .c_,
+    .chips .c_ {
+      font-family: var(--mono);
+      font-weight: 700;
+      color: var(--dt-red-dark);
+      font-size: 11.5px
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 5px
+    }
+
+    .chips span {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: var(--redtint);
+      color: var(--dt-red-dark);
+      border: 1px solid var(--redline);
+      border-radius: 5px;
+      padding: 1px 5px;
+      line-height: 1.5
+    }
+
+    /* Summary slide = two stacked halves (Tools used + the 3 columns); allow vertical scroll if tall */
+    .slide.scroll {
+      overflow-y: auto
+    }
+
+    .slide.scroll .summary,
+    .slide.scroll .flow {
+      flex: 0 0 auto
+    }
+
+    .slide.scroll .scol .bd {
+      overflow: visible
+    }
+
+    .slide.scroll .footer {
+      position: static;
+      margin-top: 14px
+    }
+
+    /* "Tools used" upper half — a grid of tool cards (header + body details + link) */
+    .toolwrap {
+      margin: 4px 0 16px
+    }
+
+    .toolwrap .hd2 {
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 800;
+      margin: 0 0 9px
+    }
+
+    .toolgrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px
+    }
+
+    .tcard {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #fff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    .tcard .th {
+      padding: 8px 13px;
+      background: var(--soft);
+      border-bottom: 1px solid var(--line)
+    }
+
+    .tcard .th .nm {
+      font-weight: 800;
+      font-size: 13.5px;
+      color: var(--ink)
+    }
+
+    .tcard .tb {
+      padding: 10px 13px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      display: flex;
+      flex-direction: column;
+      flex: 1
+    }
+
+    .tcard .tb .role {
+      color: var(--ink);
+      font-weight: 600
+    }
+
+    .tcard .tb a {
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--scapi);
+      text-decoration: none;
+      word-break: break-word
+    }
+
+    .tcard .tb a:hover {
+      text-decoration: underline
+    }
+
+    /* tighten the integrations column so all 11 rows fit without scrolling */
+    .scol.integ .bd {
+      gap: 9px
+    }
+
+    .scol.integ .row2 {
+      padding: 9px 11px
+    }
+
+    .scol.integ .row2 .t {
+      font-size: 12.5px
+    }
+
+    .scol.integ .row2 .m {
+      font-size: 10.5px;
+      margin-top: 2px
+    }
+
+    .scol.integ .row2 .d {
+      font-size: 11px;
+      line-height: 1.4;
+      margin-top: 3px
+    }
+
+    /* highlight an external vendor endpoint URL inline (replaces the old 3rd-party cell/pill treatment) */
+    .url {
+      background: #fff1dd;
+      color: #9a5a00;
+      font-weight: 700;
+      padding: 0 3px;
+      border-radius: 3px
+    }
+
+    /* compact schema-table cards inside the summary's extended-objects column (slide-05 look, condensed) */
+    .scol.ext .bd {
+      gap: 6px
+    }
+
+    .mt {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      overflow: hidden;
+      background: #fff
+    }
+
+    .mt .cap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 4px 9px;
+      background: #d66a6a;
+      color: #fff
+    }
+
+    .mt .cap .nm {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 12.5px
+    }
+
+    .mt .cap .st {
+      font-size: 8px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      opacity: .92;
+      background: rgba(255, 255, 255, .22);
+      padding: 1px 5px;
+      border-radius: 999px;
+      white-space: nowrap
+    }
+
+    .mt .r {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 9px;
+      border-top: 1px solid var(--line);
+      background: var(--soft)
+    }
+
+    .mt .r .nmc {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: #45454b;
+      font-weight: 600;
+      line-height: 1.4
+    }
+
+    .mt .r .nmc .vals {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 9.5px
+    }
+
+    .mt .r .nb {
+      margin-left: auto;
+      font-family: var(--sans);
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      color: var(--dt-red-dark);
+      background: var(--redtint);
+      border: 1px solid var(--redline);
+      border-radius: 999px;
+      padding: 0 5px
+    }
+
+    .mt .hk {
+      padding: 3px 9px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      line-height: 1.3
+    }
+
+    /* DATA slide — top-down catalog flow (SAP master → B2C master catalog → per-site fan-out) */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      min-height: 0;
+      justify-content: flex-start;
+      gap: 0;
+      padding-top: 18px
+    }
+
+
+    .fbox {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 20px;
+      background: #fff;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+      min-width: 300px
+    }
+
+    .fbox .ft {
+      font-weight: 800;
+      font-size: 15.5px;
+      line-height: 1.15
+    }
+
+    .fbox .ft .sm {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-left: 6px
+    }
+
+    .fbox .fs {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4
+    }
+
+    .fbox.sap {
+      background: #eef1f5;
+      color: var(--ink);
+      border-color: #cfd5dd;
+      min-width: 200px;
+      position: relative;
+      border-radius: 0 0 50% 50% / 0 0 22px 22px;
+      padding-top: 20px;
+      padding-bottom: 16px;
+      margin-top: 13px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .07)
+    }
+
+    .fbox.sap::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -11px;
+      height: 22px;
+      background: #e0e5ec;
+      border: 1px solid #cfd5dd;
+      border-radius: 50%
+    }
+
+    .fbox.sap .ft,
+    .fbox.sap .fs,
+    .fbox.sap .feedlist {
+      position: relative;
+      z-index: 1
+    }
+
+    .fbox.sap .ft .sm,
+    .fbox.sap .fs {
+      color: var(--muted)
+    }
+
+    .fbox.master {
+      background: #fff;
+      border-color: var(--scapiline);
+      min-width: 300px;
+      max-width: 550px;
+      padding: 0;
+      overflow: hidden;
+      text-align: left
+    }
+
+    .fbox.master .mh {
+      background: var(--scapitint);
+      border-bottom: 1px solid var(--scapiline);
+      padding: 10px 16px;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--scapi);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px
+    }
+
+    .fbox.master .mh .lt {
+      font-family: var(--sans);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--scapi);
+      background: #fff;
+      border: 1px solid var(--scapiline);
+      border-radius: 999px;
+      padding: 1px 8px
+    }
+
+    .fbox.master .mbd {
+      padding: 12px 16px;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5
+    }
+
+    .fdown {
+      width: 2px;
+      height: 22px;
+      background: var(--line)
+    }
+
+    .fcap {
+      font-size: 10.5px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      margin: 5px 0
+    }
+
+    .fbox.sap .feedlist {
+      display: inline-block;
+      text-align: left;
+      margin: 9px auto 2px;
+      padding-left: 20px;
+      color: var(--ink);
+      font-size: 12.5px;
+      line-height: 1.7
+    }
+
+    .fbox.sap .feedlist li {
+      margin: 0
+    }
+
+    .fbox.sap .feedlist li.etc {
+      list-style: none;
+      margin-left: -14px;
+      color: var(--muted);
+      font-style: italic
+    }
+
+    .fsplit {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      align-items: stretch;
+      width: 100%;
+      max-width: 980px
+    }
+
+    .leaf {
+      flex: 1;
+      border: 1px solid var(--scapiline);
+      border-radius: 10px;
+      background: #fff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    .leaf .lh {
+      background: var(--scapitint);
+      border-bottom: 1px solid var(--scapiline);
+      padding: 7px 12px;
+      font-weight: 800;
+      font-size: 13.5px;
+      color: var(--scapi);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px
+    }
+
+    .leaf .lh .lt {
+      font-family: var(--sans);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 1px 6px
+    }
+
+    .leaf .lh .lt.id {
+      font-family: var(--mono);
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 10px;
+      color: var(--scapi);
+      background: var(--scapitint);
+      border-color: var(--scapiline)
+    }
+
+    .leaf .lsub,
+    .fbox.master .lsub {
+      background: var(--soft);
+      border-bottom: 1px solid var(--line);
+      padding: 4px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .leaf .lsub .lcap,
+    .fbox.master .lsub .lcap {
+      font-family: var(--sans);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex-shrink: 0
+    }
+
+    .leaf .lsub .lcat,
+    .fbox.master .lsub .lcat {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--ink);
+      overflow-wrap: anywhere
+    }
+
+    .fbox.master .lsub .lcat {
+      font-weight: 700
+    }
+
+    .leaf .lbd {
+      padding: 8px 12px;
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.4;
+      flex: 1;
+      display: flex;
+      flex-direction: column
+    }
+
+    .leaf .lbd .pbs {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding-top: 8px
+    }
+
+    .leaf .lbd .pb {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink);
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 1px 6px;
+      max-width: 100%;
+      overflow-wrap: anywhere
+    }
+
+    .leaf .lbd .pbcap {
+      font-size: 9px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 800;
+      margin-bottom: 1px
+    }
+
+    /* storefront super-card: one SFNext instance per brand, serving its B2C + B2B sites */
+    .fsplit .storefront {
+      flex: 1;
+      border: 1px solid var(--scapiline);
+      border-radius: 12px;
+      background: var(--scapitint);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    .storefront .sfh {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid var(--dt-red-dark);
+      font-weight: 800;
+      font-size: 14.5px;
+      color: #fff;
+      background: var(--dt-red)
+    }
+
+    .storefront .sfh .sft {
+      font-family: var(--sans);
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: #fff;
+      background: rgba(255, 255, 255, .18);
+      border: 1px solid rgba(255, 255, 255, .4);
+      border-radius: 999px;
+      padding: 1px 7px
+    }
+
+    .storefront .sfb {
+      display: flex;
+      gap: 9px;
+      padding: 15px;
+      background: #fff;
+      flex: 1
+    }
+
+    .storefront .sfb .site {
+      flex: 1
+    }
+
+    /* site card (inside a storefront): id + logical name, then its config as mini-cards */
+    .site {
+      border: 1px solid var(--scapiline);
+      border-radius: 9px;
+      background: #fff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    .site .shd {
+      background: var(--scapitint);
+      border-bottom: 1px solid var(--scapiline);
+      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      font-size: 12px;
+      color: var(--scapi);
+      line-height: 1.2
+    }
+
+    .site .shd .id {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 9.5px;
+      color: var(--scapi);
+      background: #fff;
+      border: 1px solid var(--scapiline);
+      border-radius: 6px;
+      padding: 1px 5px;
+      flex-shrink: 0
+    }
+
+    .site .sbd {
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      flex: 1
+    }
+
+    .site .mini {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--soft);
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px
+    }
+
+    .site .mini .mcap {
+      align-self: flex-start;
+      font-family: var(--sans);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--scapi);
+      background: var(--scapitint);
+      border: 1px solid var(--scapiline);
+      border-radius: 999px;
+      padding: 1px 7px
+    }
+
+    .site .mini .mval {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+      display: flex;
+      flex-direction: column;
+      gap: 3px
+    }
+
+    .nav {
+      position: absolute;
+      bottom: 14px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 6px
+    }
+
+    .nav button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #555;
+      border-radius: 6px;
+      width: 32px;
+      height: 30px;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .06)
+    }
+
+    .nav button:hover {
+      background: var(--soft)
+    }
+
+    .progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: var(--dt-red);
+      z-index: 10;
+      transition: width .2s
+    }
+
+    @media print {
+
+      .toc,
+      .nav,
+      .progress {
+        display: none !important
+      }
+
+      .app {
+        display: block;
+        height: auto
+      }
+
+      .stage {
+        position: static
+      }
+
+      .slide {
+        display: flex !important;
+        position: relative;
+        page-break-after: always;
+        width: 1280px;
+        height: 720px;
+        padding: 40px 48px
+      }
+
+      .cover {
+        padding-left: 80px
+      }
+
+      @page {
+        size: 1280px 720px;
+        margin: 0
+      }
+    }
+
+    /* SYSTEMS slide — zones (Shopper · B2C Commerce · Core org) with communication lines */
+    .sys { display: flex; align-items: stretch; justify-content: center; gap: 0; flex: 1; min-height: 0; padding-top: 6px }
+    .zone { border: 1px solid var(--line); border-radius: 11px; background: #fff; overflow: hidden; display: flex; flex-direction: column; align-self: center }
+    .zone.shopper { width: 118px }
+    .zone.b2c { width: 290px }
+    .zone.core { width: 300px }
+    .zone .zh { padding: 8px 12px; color: #fff; font-weight: 800; font-size: 13px; letter-spacing: .02em }
+    .zone.shopper .zh { background: var(--ink) }
+    .zone.b2c .zh { background: var(--scapi) }
+    .zone.core .zh { background: var(--ok) }
+    .zone .zb { padding: 8px; display: flex; flex-direction: column; gap: 6px }
+    .node2 { border: 1px solid var(--line); border-radius: 7px; background: var(--soft); padding: 6px 9px; line-height: 1.3 }
+    .node2 b { font-size: 12px; color: var(--ink); display: block }
+    .node2 span { font-size: 10.5px; color: var(--muted); display: block; margin-top: 1px }
+    .gutter { display: flex; flex-direction: column; justify-content: center; gap: 6px; align-self: center; padding: 0 8px }
+    .gutter.sm { width: 70px }
+    .gutter.wide { width: 196px }
+    .link { font-size: 10px; color: var(--muted); line-height: 1.25; text-align: center }
+    .link .a { font-family: var(--mono); color: var(--dt-red); font-weight: 700; display: block; font-size: 11px }
+    .link b { color: var(--ink); font-weight: 700 }
+    .link span { display: block; margin-top: 1px }
+    .vendors { margin-top: 12px; text-align: center; font-size: 11.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px }
+    .vendors b { color: var(--ink); font-weight: 700 }
+
+    /* SYSTEMS v2 — architecture-diagram style (product boxes w/ capability tiles, platform group, lane, legend) */
+    .arch { display: flex; flex-direction: column; align-items: center; gap: 0; flex: 1; min-height: 0; padding-top: 2px }
+    .tier { display: flex; align-items: center; justify-content: center; gap: 16px }
+    .client { border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 7px 14px; text-align: center; min-width: 120px }
+    .client b { font-size: 12.5px }
+    .client span { display: block; font-size: 10px; color: var(--muted); margin-top: 1px }
+    .vconn { display: flex; flex-direction: column; align-items: center; padding: 4px 0; color: var(--muted); font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; line-height: 1.25; text-align: center; max-width: 780px }
+    .vconn .ar { font-size: 15px; color: var(--scapi); line-height: 1 }
+    .pcard { border: 2px solid var(--scapiline); border-radius: 12px; background: #fff; overflow: hidden }
+    .pcard .ph { display: flex; align-items: center; gap: 8px; padding: 7px 14px; font-weight: 800; font-size: 14.5px; color: var(--scapi); background: var(--scapitint); border-bottom: 1px solid var(--scapiline) }
+    .pcard.core { border-color: #9fcdae }
+    .pcard.core .ph { color: var(--ok); background: var(--oktint); border-bottom-color: #9fcdae }
+    .cloudbadge { margin-left: auto; font-size: 8.5px; font-weight: 800; letter-spacing: .04em; color: var(--scapi); background: #fff; border: 1px solid var(--scapiline); border-radius: 999px; padding: 1px 7px }
+    .pcard.core .cloudbadge { color: var(--ok); border-color: #9fcdae }
+    .caps { display: flex; gap: 8px; padding: 11px 14px; justify-content: center }
+    .cap2 { display: flex; flex-direction: column; align-items: center; text-align: center; width: 84px; gap: 5px }
+    .cap2 .ci { width: 34px; height: 34px; border-radius: 9px; background: var(--scapitint); color: var(--scapi); display: flex; align-items: center; justify-content: center; font-size: 17px }
+    .pcard.core .cap2 .ci { background: var(--oktint) }
+    .cap2 .cl { font-size: 10.5px; color: var(--ink); font-weight: 600; line-height: 1.2 }
+    .hconn { display: flex; flex-direction: column; align-items: center; color: var(--muted); font-size: 9.5px; font-weight: 700; text-transform: uppercase; text-align: center; line-height: 1.2; width: 104px }
+    .hconn .ar { color: var(--ok); font-size: 18px; line-height: 1 }
+    .platform { border: 1.5px solid var(--scapiline); border-radius: 14px; background: var(--soft); padding: 26px 16px 16px; position: relative; margin-top: 2px }
+    .platform .plabel { position: absolute; top: 7px; left: 16px; font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: .03em }
+    .sidewrap { display: flex; align-items: center }
+    .sidestack { display: flex; flex-direction: column; gap: 6px }
+    .svc { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 5px 11px; font-size: 11px; font-weight: 600; text-align: center; min-width: 100px }
+    .svc span { display: block; font-size: 9px; color: var(--muted); font-weight: 500; margin-top: 1px }
+    .lane { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 10px; color: var(--muted); font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; text-align: center; line-height: 1.2 }
+    .lane .bar { width: 0; height: 110px; border-left: 2px dashed var(--scapiline); margin: 4px 0 }
+    .legend2 { display: flex; gap: 16px; justify-content: center; margin-top: 12px; font-size: 10.5px; color: var(--muted); flex-wrap: wrap }
+    .legend2 .k { display: inline-flex; align-items: center; gap: 6px }
+    .legend2 .b { width: 22px; border-top: 2px solid var(--scapi) }
+    .legend2 .b.dash { border-top: 2px dashed var(--muted) }
+    .legend2 .sq { width: 13px; height: 13px; border-radius: 3px; border: 2px solid var(--scapiline); background: #fff; display: inline-block }
+    .legend2 .sq.core { border-color: #9fcdae }
+    .legend2 .sq.ext { border-color: var(--line); background: var(--soft) }
+    /* SYSTEMS v3 — core broken into simple product boxes + SAP OMS below + SVG connector lines */
+    .arch { position: relative }
+    .arch > :not(.archsvg) { position: relative; z-index: 1 }
+    .archsvg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: visible }
+    .coregrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px }
+    .cbox { border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 11px 10px; text-align: center; font-weight: 700; font-size: 12.5px; color: var(--ink); display: flex; align-items: center; justify-content: center; min-height: 44px; box-shadow: 0 1px 2px rgba(0,0,0,.04) }
+    .cbox.oms { border: 2px dashed var(--scapi); color: var(--scapi); background: var(--scapitint) }
+    .sapbox { border: 2px solid var(--ink); border-radius: 11px; background: #fff; padding: 9px 22px; text-align: center }
+    .sapbox b { font-size: 15px }
+    .sapbox span { display: block; font-size: 10.5px; color: var(--muted); margin-top: 1px }
+
+    /* ─────────── Local-marketing slide (regional store campaigns) ─────────── */
+    /* "The ask" — the prospect's scenario, framed as a quote in DT-red */
+    .askbox { align-self: stretch; border: 1px solid var(--redline); background: var(--redtint); border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 7px }
+    .askbox .alabel { align-self: flex-start; font-family: var(--sans); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--dt-red); background: #fff; border: 1px solid var(--redline); border-radius: 999px; padding: 2px 9px }
+    .askbox .aq { font-size: 14px; line-height: 1.5; color: var(--ink) }
+    .askbox .aq em { color: var(--dt-red); font-style: italic; font-weight: 600 }
+    .askbox .anote { font-size: 11.5px; color: var(--muted) }
+
+    /* three approach pillars */
+    .plan { align-self: stretch; display: flex; gap: 14px; align-items: stretch; margin-top: 2px }
+    .pcard { flex: 1; display: flex; flex-direction: column; border: 1px solid var(--scapiline); border-radius: 12px; background: var(--scapitint); overflow: hidden }
+    .pcard .ph { padding: 10px 14px; background: var(--scapi); color: #fff; font-weight: 800; font-size: 13.5px; line-height: 1.25; display: flex; align-items: center; gap: 9px }
+    .pcard .ph .pn { font-family: var(--mono); font-size: 12px; font-weight: 700; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.4); border-radius: 999px; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0 }
+    .pcard .pbd { padding: 12px 14px; background: #fff; flex: 1; display: flex; flex-direction: column; gap: 10px; font-size: 12px; line-height: 1.5; color: var(--ink) }
+    .pcard .pbd b { font-weight: 700 }
+    .pcard .caps { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; padding-top: 4px }
+    .pcard .caps .cap { font-family: var(--sans); font-size: 8.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--scapi); background: var(--scapitint); border: 1px solid var(--scapiline); border-radius: 999px; padding: 2px 8px }
+
+    /* trigger / scale-answer callout */
+    .trigbox { align-self: stretch; margin-top: 2px; border: 1px solid var(--scapiline); background: var(--scapitint); border-radius: 12px; padding: 13px 18px; font-size: 12.5px; line-height: 1.55; color: var(--ink) }
+    .trigbox .tl { font-family: var(--sans); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--scapi); margin-right: 9px; background: #fff; border: 1px solid var(--scapiline); border-radius: 999px; padding: 2px 9px; white-space: nowrap }
+
+    /* tabbed "approaches" — several options, config → custom */
+    .tabs { align-self: stretch; margin-top: 4px }
+    .tabbar { display: flex; gap: 6px; border-bottom: 2px solid var(--scapiline) }
+    .tab { appearance: none; cursor: pointer; border: 1px solid var(--scapiline); border-bottom: none; background: var(--soft); color: var(--muted); font-family: var(--sans); font-weight: 800; font-size: 12.5px; padding: 9px 16px; border-radius: 9px 9px 0 0; position: relative; top: 2px }
+    .tab .tn { font-family: var(--mono); font-size: 10px; color: var(--scapi); margin-right: 7px }
+    .tab.active { background: var(--scapi); color: #fff; border-color: var(--scapi) }
+    .tab.active .tn { color: #fff }
+    .tabpanel { display: none; border: 1px solid var(--scapiline); border-top: none; border-radius: 0 0 12px 12px; background: #fff; padding: 48px 34px 52px; box-shadow: inset 0 1px 0 var(--scapitint), 0 2px 8px rgba(10,78,162,.06) }
+    .tabpanel.active { display: block }
+    .tabpanel .lead { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.5; margin-bottom: 11px }
+    .tabpanel ul { margin: 0 0 12px; padding-left: 18px; display: flex; flex-direction: column; gap: 7px }
+    .tabpanel li { font-size: 12.5px; line-height: 1.5; color: var(--ink) }
+    .tabpanel li b { font-weight: 700 }
+    .tabpanel .assume { font-size: 11.5px; color: var(--muted); line-height: 1.5; background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-bottom: 11px }
+    .tabpanel .assume b { color: var(--ink); text-transform: uppercase; font-size: 9px; letter-spacing: .06em; margin-right: 7px }
+    .tabpanel .caps { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-start }
+
+    /* slide-level footnote (e.g. Marketing Cloud / MCP caveat) */
+    .fnote { margin: 14px auto 0; max-width: 1000px; font-size: 10.5px; color: var(--muted); font-style: italic; line-height: 1.5; text-align: center }
+    .fmark { color: var(--scapi); font-weight: 800 }
+    .fnote .fmark { font-style: normal; margin-right: 5px }
+    .fnote b { font-style: normal; color: var(--ink); font-weight: 700 }
+
+    /* mini architecture diagram — ONE anchored rail per tab; only the driver + B2C mechanism swap */
+    .arch { align-self: stretch; margin-top: 20px; border-top: 1px dashed var(--line); padding-top: 18px }
+    .arch .alabel2 { font-family: var(--sans); font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); text-align: center; margin-bottom: 16px }
+    .archrow { display: flex; align-items: center; justify-content: center }
+    .anode { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 9px 13px; text-align: center; min-width: 98px; box-shadow: 0 1px 2px rgba(0,0,0,.04) }
+    .anode .at { font-weight: 800; font-size: 12px; color: var(--ink); line-height: 1.2 }
+    .anode .as { font-size: 9px; color: var(--muted); margin-top: 3px; font-family: var(--mono); line-height: 1.25 }
+    .anode.b2c { border-color: var(--scapiline); background: var(--scapitint); min-width: 210px }
+    .anode.b2c .at { color: var(--scapi) }
+    .anode.b2c .mech { font-size: 10px; color: var(--scapi); margin-top: 5px; font-weight: 700; line-height: 1.35; font-family: var(--mono) }
+    .anode.out { border-color: var(--redline); background: var(--redtint) }
+    .anode.out .at { color: var(--dt-red) }
+    .aar { color: var(--muted); font-size: 17px; padding: 0 11px; flex-shrink: 0 }
+    .b2cstack { display: flex; flex-direction: column; align-items: center }
+    .driver { border: 1px dashed var(--scapi); border-radius: 9px; background: #fff; padding: 7px 12px; font-size: 10.5px; font-weight: 700; color: var(--scapi); text-align: center; line-height: 1.3; max-width: 220px }
+    .driver .dl { display: block; font-family: var(--sans); font-size: 8px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px }
+    .driver.ext { border-color: var(--ink); color: var(--ink) }
+    .driver.ext .dl { color: var(--muted) }
+    .vdown { width: 2px; height: 15px; background: var(--scapiline) }
+
+    /* "how they access the controls" callout — blue-tinted to tie to the platform/interface */
+    .tabpanel .access { font-size: 11.5px; color: var(--ink); line-height: 1.5; background: var(--scapitint); border: 1px solid var(--scapiline); border-radius: 8px; padding: 8px 12px; margin-bottom: 11px }
+    .tabpanel .access .lbl { color: var(--scapi); text-transform: uppercase; font-size: 9px; letter-spacing: .06em; margin-right: 7px; font-weight: 800 }
+    .tabpanel .access b { font-weight: 700 }
+    .tabpanel .caps .cap { font-family: var(--sans); font-size: 8.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--scapi); background: var(--scapitint); border: 1px solid var(--scapiline); border-radius: 999px; padding: 2px 8px }
+    /* tab 1 keeps the pillar layout inside its panel */
+    .tabpanel .plan { margin-top: 0 }
+    .tabpanel .trigbox { margin-top: 14px }
+    /* bulleted differentiator list inside a tool card */
+    .tcard .tb ul.tbul { margin: 7px 0 0; padding-left: 15px; display: flex; flex-direction: column; gap: 3px }
+    .tcard .tb ul.tbul li { font-size: 11px; line-height: 1.32; color: var(--muted) }
+    .tcard .tb ul.tbul li b { color: var(--ink); font-weight: 600 }
+
+    /* GETTING STARTED (handover) — topic cards with COMING SOON placeholders */
+    .gsgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px }
+    .gscard { border: 1px solid var(--line); border-radius: 11px; background: #fff; overflow: hidden; display: flex; flex-direction: column }
+    .gscard .gh { display: flex; align-items: center; gap: 8px; padding: 9px 13px; background: var(--soft); border-bottom: 1px solid var(--line); font-weight: 800; font-size: 13.5px; color: var(--ink) }
+    .gscard .gh .ico { font-size: 15px }
+    .gscard .gb { padding: 11px 13px; font-size: 12px; color: var(--muted); line-height: 1.45; flex: 1; display: flex; flex-direction: column; gap: 8px }
+    .gscard .gb .ph { color: #9a9aa0; font-style: italic }
+    .soon { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; font-family: var(--sans); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #9a5a00; background: #fff1dd; border: 1px solid #f0cf9a; border-radius: 999px; padding: 2px 8px }
+    .soon::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #e0a000 }
+
+    /* ═══════════ POC / HANDS-ON LAB — test accounts, URLs, BM access ═══════════ */
+    /* top callout bar: the two things you must know before clicking around */
+    .pocbar { display: flex; gap: 12px; margin: 0 0 16px }
+    .pocbar .pf { flex: 1; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); padding: 10px 13px }
+    .pocbar .pf .pi { font-size: 17px; flex-shrink: 0 }
+    .pocbar .pf .px { font-size: 12px; color: var(--muted); line-height: 1.4 }
+    .pocbar .pf .px b { color: var(--ink); font-weight: 700 }
+    .pocbar .pf .px code { font-family: var(--mono); font-size: 11px; background: #fff; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; color: var(--ink) }
+    .pocbar .pf.warn { background: var(--redtint); border-color: var(--redline) }
+
+    /* two storefronts side by side */
+    .pocgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px }
+    .poccol { display: flex; flex-direction: column; gap: 11px }
+    .pocbrand { display: flex; align-items: baseline; gap: 9px; font-weight: 800; font-size: 15px; color: var(--ink) }
+    .pocbrand .r { color: var(--dt-red) }
+    .pocbrand .repo { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--muted); background: var(--soft); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px }
+
+    /* one site within a storefront */
+    .pocsite { border: 1px solid var(--scapiline); border-radius: 10px; background: #fff; overflow: hidden }
+    .pocsh { background: var(--scapitint); border-bottom: 1px solid var(--scapiline); padding: 7px 10px; display: flex; align-items: center; gap: 7px; font-weight: 800; font-size: 12px; color: var(--scapi) }
+    .pocsh .id { font-family: var(--mono); font-weight: 700; font-size: 9.5px; color: var(--scapi); background: #fff; border: 1px solid var(--scapiline); border-radius: 6px; padding: 1px 5px; flex-shrink: 0 }
+    .pocsh .url { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink); background: #fff; border: 1px solid var(--scapiline); border-radius: 6px; padding: 2px 7px }
+    .pocbody { padding: 8px; display: flex; flex-direction: column; gap: 6px }
+
+    /* one account row */
+    .pocacct { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--soft); padding: 6px 9px }
+    .pocacct .nm { font-weight: 700; font-size: 11.5px; color: var(--ink); flex-shrink: 0 }
+    .pocacct .role { font-family: var(--sans); font-size: 8px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--scapi); background: var(--scapitint); border: 1px solid var(--scapiline); border-radius: 999px; padding: 1px 7px; flex-shrink: 0 }
+    .pocacct .role.mgr { color: var(--ok); background: var(--oktint); border-color: #bcdcc6 }
+    .pocacct .role.adm { color: #9a5a00; background: #fff1dd; border-color: #f0cf9a }
+    .pocacct .login { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--muted); overflow-wrap: anywhere; text-align: right }
+    .pocmeta { font-size: 10px; color: var(--muted); padding: 2px 2px 0; line-height: 1.4 }
+    .pocmeta code { font-family: var(--mono); font-size: 9.5px; background: var(--soft); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--ink) }
+
+    /* BM access slide */
+    .pocbm { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start }
+    .pocbm .card { border: 1px solid var(--line); border-radius: 11px; background: #fff; overflow: hidden }
+    .pocbm .card .h { display: flex; align-items: center; gap: 8px; padding: 9px 13px; background: var(--soft); border-bottom: 1px solid var(--line); font-weight: 800; font-size: 13px; color: var(--ink) }
+    .pocbm .card .b { padding: 12px 13px; font-size: 12px; color: var(--muted); line-height: 1.5; display: flex; flex-direction: column; gap: 9px }
+    .pocbm .card .b b { color: var(--ink); font-weight: 700 }
+    .pocbm .card .b code { font-family: var(--mono); font-size: 11px; background: var(--soft); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; color: var(--ink); overflow-wrap: anywhere }
+    .pocbm .urlbox { font-family: var(--mono); font-size: 11px; color: var(--ink); background: var(--scapitint); border: 1px solid var(--scapiline); border-radius: 8px; padding: 9px 11px; overflow-wrap: anywhere }
+    .pocbm .urlbox .tagline { display: block; font-family: var(--sans); font-size: 8px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--scapi); margin-bottom: 4px }
+    .pocbmusers { display: flex; flex-direction: column; gap: 7px }
+    .pocbmusers .u { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--soft); padding: 7px 10px }
+    .pocbmusers .u .nm { font-weight: 700; font-size: 11.5px; color: var(--ink) }
+    .pocbmusers .u .login { font-family: var(--mono); font-size: 10px; color: var(--muted) }
+    .pocbmusers .u .st { margin-left: auto; font-family: var(--sans); font-size: 8px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px; padding: 1px 8px }
+    .pocbmusers .u .st.on { color: var(--ok); background: var(--oktint); border: 1px solid #bcdcc6 }
+    .pocbmusers .u .st.off { color: #9a5a00; background: #fff1dd; border: 1px solid #f0cf9a }
+
+    /* nested TOC items under a .sec section header (Getting Started wizard) */
+    .toc .item.sub { margin-left: 10px }
+    .toc .item.sub .idx { color: #55555e }
+
+    /* Getting Started · wizard index (numbered steps) */
+    .wizgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 4px 0 14px }
+    .wizstep { display: flex; gap: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px 15px }
+    .wizstep .n { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--dt-red); color: #fff; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center }
+    .wizstep .wb { display: flex; flex-direction: column; gap: 5px }
+    .wizstep .wt { font-weight: 800; font-size: 14px; color: var(--ink); line-height: 1.2 }
+    .wizstep .wd { font-size: 11.5px; color: var(--muted); line-height: 1.45 }
+    .wizstep .wd code { font-family: var(--mono); font-size: 10.5px; background: var(--soft); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--ink) }
+    .wizlater { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px dashed var(--line); border-radius: 10px; background: var(--soft); padding: 11px 14px; font-size: 11.5px; color: var(--muted); line-height: 1.5 }
+    .wizlater .lbl { font-family: var(--sans); font-size: 8px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; flex-shrink: 0 }
+
+    /* Step 2 "Run the storefront" reuses the .pocbm card styling in a 2×2 grid */
+    .pocbm.runwrap { grid-template-columns: 1fr 1fr; align-items: stretch }
+
+
+</style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="toc">
+      <div class="brand">
+        <div class="b1"><span class="dot"></span> Behind the Scenes</div>
+        <div class="b2">Discount Tire · technical deep-dive</div>
+      </div>
+      <div class="items" id="toc"></div>
+      <div class="foot"><span>Discount Tire</span><span class="keys">← →</span></div>
+    </aside>
+    <div class="stage">
+      <div class="progress" id="prog"></div>
+
+      <section class="slide cover active" data-title="Introduction" data-scenario="0">
+        <div class="ey">Behind the Scenes</div>
+        <h1>How our Discount Tire storefront was built</h1>
+        <p>Storefront Next, backed by Salesforce Commerce Cloud and the Salesforce core org. The major
+          technical pieces — the tooling, the integrations we built, and how product data flows into the catalog.</p>
+        <div class="toclist">
+          <div class="ln"><span class="n">01</span><span>Data — SAP master → B2C catalog → per-site fan-out</span></div>
+          <div class="ln"><span class="n">02</span><span>Everything we built — integrations, extended &amp; custom
+              objects</span></div>
+          <div class="ln"><span class="n">03</span><span>Tools — what we built it with</span></div>
+        </div>
+        <div class="footer"><span>Discount Tire · Behind the Scenes</span><span class="num">intro</span></div>
+      </section>
+
+      <section class="slide scroll" data-scenario="D" data-title="Data">
+        <div class="kicker"><span class="tag">Data</span></div>
+        <h1>Catalogs, Pricebooks, Inventory and <span class="accent">Storefronts</span></h1>
+        <p class="sub"></p>
+        <div class="flow">
+          <div class="fbox sap">
+            <div class="ft">SAP</div>
+            <ul class="feedlist">
+              <li>Products</li>
+              <li>Pricing</li>
+              <li>Inventory</li>
+              <li class="etc">. . . </li>
+            </ul>
+          </div>
+          <div class="fdown"></div>
+          <div class="fdown"></div>
+          <div class="fdown"></div>
+          <div class="fbox master">
+            <div class="mh">B2C Master Catalog</div>
+            <div class="lsub"><span class="lcap">catalog</span><span class="lcat">dt-product</span></div>
+            <div class="mbd">Every product, variation &amp; attribute — <b>one source of truth</b> across Discount Tire
+              &amp;
+              Tire Rack, plus the <b>DT-TREADWELL</b> fleet-attribute overlay that feeds Agentforce tire
+              recommendations.</div>
+          </div>
+          <div class="fdown"></div>
+          <div class="fdown"></div>
+          <div class="fdown"></div>
+          <div class="fsplit">
+            <div class="storefront">
+              <div class="sfh">Discount Tire <span class="sft">SFNext storefront</span></div>
+              <div class="sfb">
+                <div class="site">
+                  <div class="shd"><span class="id">dt</span>Retail</div>
+                  <div class="sbd">
+                    <div class="mini"><span class="mcap">storefront catalog</span><span
+                        class="mval">dt-storefront</span></div>
+                    <div class="mini"><span class="mcap">pricebooks</span><span class="mval">dt-list-prices</span></div>
+                  </div>
+                </div>
+                <div class="site">
+                  <div class="shd"><span class="id">dtb2b</span>Fleet / B2B</div>
+                  <div class="sbd">
+                    <div class="mini"><span class="mcap">storefront catalog</span><span
+                        class="mval">dtb2b-storefront</span></div>
+                    <div class="mini"><span class="mcap">pricebooks</span><span
+                        class="mval">dtb2b-negotiated-prices</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="storefront">
+              <div class="sfh">Tire Rack <span class="sft">SFNext storefront</span></div>
+              <div class="sfb">
+                <div class="site">
+                  <div class="shd"><span class="id">tirerack</span>Retail</div>
+                  <div class="sbd">
+                    <div class="mini"><span class="mcap">storefront catalog</span><span
+                        class="mval">tirerack-storefront</span></div>
+                    <div class="mini"><span class="mcap">pricebooks</span><span class="mval">tirerack-list-prices</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="site">
+                  <div class="shd"><span class="id">tirerack_b2b</span>Dealers / B2B</div>
+                  <div class="sbd">
+                    <div class="mini"><span class="mcap">storefront catalog</span><span
+                        class="mval">tirerack_b2b-storefront</span></div>
+                    <div class="mini"><span class="mcap">pricebooks</span><span
+                        class="mval"><span>tirerack-vw-prices</span><span>tirerack-audi-prices</span><span>tirerack-summit-prices</span><span>tirerack-b2b-negotiated-prices</span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Two <b>SFNext storefronts</b> — one per brand — serve all four sites off the one shared
+          <span class="num">dt-product</span> master. Each site is a thin layer of config: a <b>storefront catalog</b>
+          for navigation &amp; branding, a <b>price book</b> for pricing, and <b>Shopper Context</b> for dealer
+          identity. No duplicated catalogs to maintain.
+        </p>
+        <div class="footer"><span>Data · Catalog flow</span><span class="num" data-page></span></div>
+      </section>
+
+      <section class="slide scroll" data-scenario="S" data-title="Integrations / Extensions">
+        <div class="kicker"><span class="tag">Integrations</span><span> & Extensions</span></div>
+        <h1></span></h1><br>
+        <div class="summary">
+
+          <div class="scol integ">
+            <div class="hd">Integrations <span class="ct">11</span></div>
+            <div class="bd">
+              <div class="row2">
+                <div class="t">VIN decode <span class="pill bff">BFF</span></div>
+                <div class="m">NHTSA vPIC · <span class="url">vpic.nhtsa.dot.gov/api</span></div>
+                <div class="d">Server-side from the SFNext BFF (/action/vin-lookup) — no SCAPI/cartridge. VIN → year /
+                  make / model.</div>
+              </div>
+              <div class="row2">
+                <div class="t">Fitment lookup <span class="pill scapi">SCAPI</span></div>
+                <div class="m">wheel-size.com · <span class="url">api.wheel-size.com/v2</span></div>
+                <div class="d">Vehicle → OE tire size via <span class="c_">/custom/fitment/v1</span>. Vendor-neutral →
+                  <b>Treadwell</b>.
+                </div>
+              </div>
+              <div class="row2">
+                <div class="t">Fleet portal SSO <span class="pill core">core</span> <span
+                    class="pill scapi">SCAPI</span></div>
+                <div class="m">SLAS external IdP · OIDC + PKCE</div>
+                <div class="d">Core org is the IdP; <span class="c_">loginMergeClaims: email</span> links the B2C
+                  shopper.</div>
+              </div>
+              <div class="row2">
+                <div class="t">Real-time credit check <span class="pill core">core</span> <span
+                    class="pill scapi">SCAPI</span></div>
+                <div class="m">Apex REST · /services/apexrest/fleet-credit</div>
+                <div class="d">Pre-createOrder PO credit check in the core org. Fail-soft.</div>
+              </div>
+              <div class="row2">
+                <div class="t">Quote → order / price-match <span class="pill core">core</span> <span
+                    class="pill scapi">SCAPI</span></div>
+                <div class="m">/custom/quote/v1 · core /services/apexrest/quotes</div>
+                <div class="d">SCAPI locks per-line prices on the basket; quote + case records live in core CRM.</div>
+              </div>
+              <div class="row2">
+                <div class="t">Appointments <span class="pill core">core</span> <span class="pill scapi">SCAPI</span>
+                </div>
+                <div class="m">Salesforce Scheduler · /services/apexrest/appointments</div>
+                <div class="d">Books + reads installs on <span class="c_">ServiceAppointment</span> (email-scoped).
+                </div>
+              </div>
+              <div class="row2">
+                <div class="t">Order Management (OMS) <span class="pill core">core</span> <span
+                    class="pill scapi">SCAPI</span></div>
+                <div class="m">Salesforce OMS · OrderSummary · /order-status</div>
+                <div class="d">Orders flow into OMS for fulfillment &amp; lifecycle; storefront reads authoritative
+                  status.</div>
+              </div>
+              <div class="row2">
+                <div class="t">Agent → Service Cloud handoff <span class="pill core">core</span></div>
+                <div class="m">Agentforce Connected App (JWT) · Omni-Channel</div>
+                <div class="d">"Transfer to a human" routes the live chat into <b>Service Cloud</b> with full context.
+                </div>
+              </div>
+              <div class="row2">
+                <div class="t">B2C ↔ CRM identity link <span class="pill core">core</span> <span
+                    class="pill scapi">SCAPI</span></div>
+                <div class="m">Person Account · PersonEmail · loginMergeClaims: email</div>
+                <div class="d">Unifies the B2C shopper with the core Person Account by email.</div>
+              </div>
+              <div class="row2">
+                <div class="t">eProcurement PunchOut <span class="pill scapi">SCAPI</span></div>
+                <div class="m">cXML PunchOutOrderMessage · <span class="c_">/custom/order/v1</span></div>
+                <div class="d">Tire Rack — SAP Ariba punch-out → cXML requisition → approved PO → intake API → real B2C
+                  order.</div>
+              </div>
+              <div class="row2">
+                <div class="t">Dealer contract pricing <span class="pill scapi">SCAPI</span></div>
+                <div class="m">Shopper Context · <span class="c_">c_tireRackDealerId</span> → accountOrgId</div>
+                <div class="d">Tire Rack — dealer slug → <b>accountOrgId</b> Shopper Context qualifier; activates the
+                  dealer price book on PLP/PDP/cart.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scol ext">
+            <div class="hd">System Objects <span class="ct">5</span></div>
+            <div class="bd">
+              <div class="mt">
+                <div class="cap"><span class="nm">Profile</span></div>
+                <div class="r"><span class="nmc">c_fleetOrgId</span></div>
+                <div class="r"><span class="nmc">c_fleetOrgName</span></div>
+                <div class="r"><span class="nmc">c_fleetRole <span class="vals">manager · admin ·
+                      worker</span></span></div>
+                <div class="r"><span class="nmc">c_isNewAccount</span></div>
+                <div class="r"><span class="nmc">c_tireRackDealerId <span class="vals">dealer slug · Tire
+                      Rack</span></span></div>
+                <div class="r"><span class="nmc">c_tireRackDealerTier <span class="vals">B2B_SMALL · MEDIUM · LARGE ·
+                      XL</span></span></div>
+                <div class="r"><span class="nmc">c_tireRackHouseAccountId</span></div>
+                <div class="r"><span class="nmc">c_tireRackDealerName · LogoUrl · Colors</span></div>
+              </div>
+              <div class="mt">
+                <div class="cap"><span class="nm">Basket</span></div>
+                <div class="r"><span class="nmc">c_quoteId</span></div>
+                <div class="r"><span class="nmc">c_quoteNumber</span></div>
+                <div class="r"><span class="nmc">c_quoteToken</span></div>
+                <div class="r"><span class="nmc">c_caseId</span></div>
+                <div class="r"><span class="nmc">c_appointmentNumber</span></div>
+                <div class="r"><span class="nmc">c_purchaseOrderNumber</span></div>
+              </div>
+              <div class="mt">
+                <div class="cap"><span class="nm">Order</span></div>
+                <div class="r"><span class="nmc">c_quoteId</span></div>
+                <div class="r"><span class="nmc">c_quoteNumber</span></div>
+                <div class="r"><span class="nmc">c_caseId</span></div>
+                <div class="r"><span class="nmc">c_appointmentNumber</span></div>
+                <div class="r"><span class="nmc">c_purchaseOrderNumber</span></div>
+              </div>
+              <div class="mt">
+                <div class="cap"><span class="nm">ProductLineItem</span></div>
+                <div class="r"><span class="nmc">c_fleetVehicleId</span></div>
+                <div class="r"><span class="nmc">c_fleetVehicleLabel</span></div>
+                <div class="r"><span class="nmc">c_fitmentVehicleId</span></div>
+                <div class="r"><span class="nmc">c_fitmentVehicleLabel</span></div>
+              </div>
+              <div class="mt">
+                <div class="cap"><span class="nm">Customer</span></div>
+                <div class="r"><span class="nmc">c_loyalty*</span></div>
+                <div class="r"><span class="nmc">c_lowerPriceCheck</span></div>
+                <div class="hk">dw.ocapi.shop.customer.afterGET</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scol obj">
+            <div class="hd">Custom objects <span class="ct">2</span></div>
+            <div class="bd">
+              <div class="row2">
+                <div class="t">dtGarage </div>
+                <div class="m">garageKey · data (JSON) · orgName</div>
+                <div class="d">A shopper's vehicles + household as one JSON blob. Keyed by <span
+                    class="c_">customerId</span> (retail) or <span class="c_">c_fleetOrgId</span> (fleet). Read/written
+                  via the custom fitment API.</div>
+              </div>
+              <div class="row2">
+                <div class="t">dealerPortalConfig </div>
+                <div class="m">dealerId (key) · data (JSON) · updatedBy</div>
+                <div class="d">Tire Rack — a dealer's self-service portal config (branding, home content, catalog price
+                  edits) as one JSON blob, keyed by dealer slug. Edited in the "mini-BM" admin console via <span
+                    class="c_">/custom/dealer-config/v1</span>; merged over the static seed by the storefront.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <p class="note">Red = custom attributes we added (<span class="num">c_</span>) · Green = core-org (CRM) ·
+          Blue = B2C Commerce / SCAPI · <b style="color:#6b3fa0">BFF = SFNext storefront server (Node)</b> ·
+          <span class="url">highlighted URL</span> = external vendor endpoint. Two custom objects,
+          five extended standard objects, eleven integrations — all reached from the storefront's server loaders.
+        </p>
+        <div class="footer"><span>Overview · Everything we built</span><span class="num" data-page></span></div>
+      </section>
+
+      <section class="slide scroll" data-scenario="T" data-title="Tools">
+        <div class="kicker"><span class="tag">Tools</span></div>
+        <h1>The <span class="accent">tools we used</span></h1><br>
+        <div class="toolgrid">
+          <div class="tcard">
+            <div class="th"><span class="nm">Storefront Next</span></div>
+            <div class="tb"><span class="role">Headless storefront framework.</span> One SFNext app serves retail
+              <em>and</em> fleet.
+              <ul class="tbul">
+                <li><b>React Router v7</b> — SSR, file-based routes, server loaders/actions</li>
+                <li><b>Vite</b> build + <b>TypeScript</b> (strict, no <span class="num">.js</span> in src)</li>
+                <li><b>Tailwind</b> + shadcn / Radix UI primitives, token-driven theming</li>
+                <li>Adapter pattern over <b>typed SCAPI</b> clients</li>
+                <li><b>Extensions</b> system + Page Designer integration</li>
+                <li><b>Storybook</b> for component dev, snapshot &amp; a11y tests</li>
+                <li><b>Agentic-ready</b>: CLAUDE.md + <span class="num">docs/README-*.md</span> give AI agents full
+                  context</li>
+              </ul>
+              <a href="https://github.com/SalesforceCommerceCloud/storefront-next-template?tab=readme-ov-file"
+                target="_blank" rel="noopener">github.com/SalesforceCommerceCloud/storefront-next-template ↗</a>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="th"><span class="nm">SCAPI — Commerce APIs</span></div><br>
+            <div class="tb"><span class="role">The B2C Commerce API layer.</span><br> <b>Shopper APIs</b> (SLAS auth,
+              products, search, baskets, orders) power the storefront; <br>
+              <p></p><b>Admin APIs</b> (catalogs, Page Designer,
+              site data) back tooling &amp; config. Our <span class="num">/custom/*</span> endpoints extend both —
+              every integration rides typed SCAPI contracts.
+              <a href="https://developer.salesforce.com/docs/commerce/commerce-api/references/about-commerce-api/scapi-api-doc.html"
+                target="_blank" rel="noopener">developer.salesforce.com ↗</a>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="th"><span class="nm">B2C Agentic Developer Toolkit</span></div>
+            <div class="tb"><span class="role">One agentic MCP across the whole B2C platform</span>
+              <ul class="tbul">
+                <li><b>Storefront Next dev</b> — primarily used in this demo</li>
+                <li><b>Headless dev</b> — Not planning to use our 'head' - no problem, build your own</li>
+                <li><b>DevOps</b> — cartridge deploy (WebDAV), code versions, log tail, remote debugger</li>
+                <li><b>Catalog &amp; data</b> — Admin APIs for catalogs, products, Page Designer (or your existing CMS),
+                  site data / impex</li>
+                <li><b>Analytics</b> — Commerce Intelligence (CIP) queries + metrics</li>
+                <li><b>Docs &amp; skills</b> — curated skills + docs that guide agentic workflows</li>
+              </ul>
+              <a href="https://salesforcecommercecloud.github.io/b2c-developer-tooling/" target="_blank"
+                rel="noopener">salesforcecommercecloud.github.io/b2c-developer-tooling ↗</a>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="th"><span class="nm">Frontier LLM (coding agent)</span></div>
+            <div class="tb"><span class="role">AI pair-programmer.</span> Built the extensions, custom APIs, and this
+              deck. Model-agnostic — Claude, Gemini, or any frontier LLM.</div>
+          </div>
+          <div class="tcard">
+            <div class="th"><span class="nm">Figma</span></div>
+            <div class="tb"><span class="role">Design-to-code.</span> Via the Figma MCP: Page Designer blocks, My
+              Vehicles, and the loyalty page went design → React.
+              <a href="https://www.figma.com/" target="_blank" rel="noopener">figma.com ↗</a>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="th"><span class="nm">Managed Runtime (MRT)</span></div>
+            <div class="tb"><span class="role">Salesforce hosting for headless.</span> The SFNext bundle deploys here
+              as a Node SSR app on Salesforce's edge/CDN.
+              <a href="https://developer.salesforce.com/docs/commerce/sfnext/guide/sfnext-mrt-section.html"
+                target="_blank" rel="noopener">developer.salesforce.com ↗</a>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="th"><span class="nm">Agentforce</span></div>
+            <div class="tb"><span class="role">Conversational agent platform.</span> The shopper agent and the
+              transfer-to-human handoff into Service Cloud (Omni-Channel).
+              <a href="https://www.salesforce.com/agentforce/" target="_blank" rel="noopener">salesforce.com/agentforce
+                ↗</a>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>Tools · What we built it with</span><span class="num" data-page></span></div>
+      </section>
+
+      <div class="nav"><button id="prev">‹</button><button id="next">›</button></div>
+    </div>
+  </div>
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const toc = document.getElementById('toc');
+    const SECTIONS = { "0": "", "S": "Overview", "A": "Systems", "D": "Data", "T": "Tools", "L": "What's next", "G": "Getting Started" };
+    let i = 0; const tocItems = []; let curSection = null;
+    slides.forEach((s, k) => {
+      // Render a section header (styled by .toc .sec) when a slide opens a new
+      // data-section group; slides without data-section stay flat as before.
+      const sec = s.dataset.section || null;
+      if (sec !== curSection) {
+        if (sec) { const h = document.createElement('div'); h.className = 'sec'; h.textContent = sec; toc.appendChild(h); }
+        curSection = sec;
+      }
+      const el = document.createElement('div'); el.className = sec ? 'item sub' : 'item';
+      const label = s.dataset.scenario === "0" ? "Introduction" : s.dataset.title;
+      el.innerHTML = `<span class="idx">${s.dataset.scenario === "0" ? "·" : String(k).padStart(2, '0')}</span><span class="ti">${label}</span>`;
+      el.onclick = () => show(k); toc.appendChild(el); tocItems[k] = el;
+    });
+    // footer page numbers (exclude cover)
+    const pageSlides = slides.filter(s => s.dataset.scenario !== "0");
+    slides.forEach(s => { const p = s.querySelector('[data-page]'); if (p) { const idx = pageSlides.indexOf(s); if (idx >= 0) p.textContent = `${idx + 1} / ${pageSlides.length}`; } });
+    const show = n => {
+      i = Math.max(0, Math.min(slides.length - 1, n));
+      slides.forEach((s, k) => s.classList.toggle('active', k === i));
+      tocItems.forEach((t, k) => t && t.classList.toggle('active', k === i));
+      document.getElementById('prog').style.width = ((i + 1) / slides.length * 100) + '%';
+      tocItems[i]?.scrollIntoView({ block: 'nearest' });
+      // Persist the current slide in the URL hash so a browser refresh (e.g. the
+      // live-reload preview) restores this slide instead of jumping to the cover.
+      history.replaceState(null, '', '#' + i);
+      requestAnimationFrame(drawArch);
+    };
+    // Draw the two order-management connector lines on the Systems slide:
+    // solid B2C -> SAP OMS (routed around the right edge), dotted B2C -> Salesforce OMS (into core).
+    function drawArch() {
+      const svg = document.getElementById('archSvg'), arch = document.getElementById('archA');
+      if (!svg || !arch) return;
+      const b2c = document.getElementById('b2cCard'), oms = document.getElementById('sfOms'), sap = document.getElementById('sapOms');
+      if (!b2c || !oms || !sap) return;
+      const ab = arch.getBoundingClientRect();
+      if (!ab.width || !ab.height) return; // slide hidden
+      const rel = e => { const r = e.getBoundingClientRect(); return { r: r.right - ab.left, b: r.bottom - ab.top, t: r.top - ab.top, cx: (r.left + r.right) / 2 - ab.left }; };
+      const B = rel(b2c), O = rel(oms), S = rel(sap);
+      const plat = arch.querySelector('.platform');
+      const P = plat ? rel(plat) : { r: ab.width - 120 };
+      const rightX = Math.min(ab.width - 8, P.r + 26), jogY = O.t - 12;
+      svg.setAttribute('viewBox', `0 0 ${ab.width} ${ab.height}`);
+      const solid = `M ${B.r - 30} ${B.b} L ${rightX} ${B.b} L ${rightX} ${S.t - 14} L ${S.cx} ${S.t - 14} L ${S.cx} ${S.t}`;
+      const dotted = `M ${B.cx} ${B.b} L ${B.cx} ${jogY} L ${O.cx} ${jogY} L ${O.cx} ${O.t}`;
+      svg.innerHTML =
+        `<path d="${solid}" fill="none" stroke="#17171b" stroke-width="2"/>` +
+        `<path d="${dotted}" fill="none" stroke="#0a4ea2" stroke-width="2" stroke-dasharray="5 4"/>`;
+    }
+    addEventListener('resize', () => requestAnimationFrame(drawArch));
+    document.getElementById('next').onclick = () => show(i + 1);
+    document.getElementById('prev').onclick = () => show(i - 1);
+    addEventListener('keydown', e => {
+      if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); show(i + 1); }
+      if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    });
+    // Restore the slide from the URL hash on load (set by a prior show() call).
+    show(parseInt(location.hash.slice(1), 10) || 0);
+
+    // Tabbed "approaches" (What's next slide): switch active tab + panel on click.
+    document.querySelectorAll('.tabbar .tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabs = btn.closest('.tabs');
+        tabs.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === btn));
+        tabs.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === btn.dataset.tab));
+      });
+    });
+  
+
+</script>
+</body>
+
+</html>
